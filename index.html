@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二元一次方程式的解與圖形</title>
+<style>
+  :root{
+    --bg:#F6F5F1;
+    --card:#FFFFFF;
+    --border:#E3E1DA;
+    --ink:#2B2E33;
+    --muted:#8A8D93;
+    --current:#2F9E58;
+    --explored:#E08A3C;
+    --grid:#DAD6C9;
+    --grid-strong:#E3E1D8;
+    --axis:#8F949B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    line-height:1.6;
+  }
+  .app{ max-width:1080px; margin:0 auto; padding:32px 24px 56px; }
+  .app-header{ margin-bottom:24px; }
+  .app-header h1{
+    font-family:"Noto Serif TC","Songti TC",Georgia,serif;
+    font-size:22px; font-weight:600; margin:0 0 6px; letter-spacing:0.02em;
+  }
+  .app-header p{ margin:0; color:var(--muted); font-size:14px; }
+  .layout{ display:flex; gap:24px; align-items:flex-start; }
+  .control-panel{ width:340px; flex-shrink:0; display:flex; flex-direction:column; gap:14px; }
+  .plane-panel{ flex:1; min-width:0; display:flex; flex-direction:column; gap:14px; }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px 20px; }
+  .field-label{ font-size:13px; color:var(--muted); margin-bottom:10px; display:block; }
+  select{
+    width:100%; padding:9px 10px; font-size:15px; border:1px solid var(--border);
+    border-radius:6px; background:#fff; color:var(--ink); font-family:inherit;
+  }
+  select:focus, button:focus-visible, input[type=range]:focus-visible{
+    outline:2px solid var(--current); outline-offset:2px;
+  }
+  .x-value{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:26px; font-weight:700; margin-bottom:14px; }
+  input[type=range]{ width:100%; height:20px; cursor:pointer; }
+  .sub-section{ margin-bottom:18px; }
+  .sub-section:last-child{ margin-bottom:0; }
+  .sub-section .field-label{ margin-bottom:8px; }
+  .sub-line{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:19px; font-weight:600; }
+  .sub-line.step1{ margin-bottom:12px; }
+  .frac{
+    display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle;
+    line-height:1.1; margin:0 2px; position:relative; top:2px;
+  }
+  .frac .fnum{ padding:0 3px; }
+  .frac .fden{ padding:0 3px; border-top:1.5px solid currentColor; }
+
+  .guide-card{ font-size:14.5px; color:var(--ink); }
+  .explored-count{ font-size:13px; color:var(--muted); padding:0 2px; }
+  .btn{
+    width:100%; padding:12px 14px; font-size:15px; border-radius:10px; border:1px solid var(--border);
+    cursor:pointer; font-family:inherit; background:#fff; color:var(--ink); transition:background 0.15s ease;
+  }
+  .btn:hover:not(:disabled){ background:#F2F1EC; }
+  .btn-primary{ background:var(--current); color:#fff; border-color:var(--current); }
+  .btn-primary:hover:not(:disabled){ background:#278249; }
+  .btn-primary:disabled{ background:#EDEDE9; border-color:#E3E1DA; color:#B3B0A8; cursor:not-allowed; }
+  .plane-wrap{ width:100%; aspect-ratio:1/1; }
+  svg{ width:100%; height:100%; display:block; }
+  .legend{ display:flex; flex-direction:column; gap:5px; font-size:13px; color:var(--muted); padding-left:2px; }
+  .legend .dot-current{ color:var(--current); font-size:16px; margin-right:6px; }
+  .legend .dot-explored{ color:var(--explored); font-size:16px; margin-right:6px; }
+  .point-info{ min-height:20px; font-size:14px; color:var(--ink); text-align:center; }
+  .point-info.empty{ color:var(--muted); }
+
+  .quadrant-intro{ margin:0 0 12px; font-size:13px; color:var(--muted); }
+  .quadrant-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px; }
+  .quad-box{
+    background:#F1F0EC; border:1px solid var(--border); border-radius:8px;
+    padding:12px 6px; text-align:center; color:var(--muted);
+    transition:background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .quad-box .quad-title{ font-size:13.5px; font-weight:600; }
+  .quad-box .quad-sign{ font-size:12px; margin-top:3px; opacity:0.85; }
+  .quad-box.active{ background:#E1F5E7; border-color:var(--current); color:#1F7A43; }
+  .quadrant-hint{ margin-top:10px; font-size:12px; color:var(--muted); text-align:center; }
+
+  @media (max-width: 800px){
+    .layout{ flex-direction:column; }
+    .control-panel{ width:100%; }
+    .app{ padding:20px 16px 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <h1>二元一次方程式的解與圖形</h1>
+    <p>拖動滑桿，看看每一組解如何變成坐標平面上的一個點。</p>
+  </div>
+
+  <div class="layout">
+    <!-- 左側操作區 -->
+    <div class="control-panel">
+      <div class="card">
+        <span class="field-label">方程式</span>
+        <select id="eqSelect">
+          <optgroup label="二元一次方程式" id="grpLinear"></optgroup>
+          <optgroup label="特殊直線（水平線／鉛直線）" id="grpSpecial"></optgroup>
+        </select>
+      </div>
+
+      <div class="card">
+        <span class="field-label" id="driveLabel">拖動 x</span>
+        <div class="x-value" id="xValueLabel">x = 0</div>
+        <input type="range" id="driveSlider" min="-10" max="10" step="1" value="0">
+      </div>
+
+      <div class="card">
+        <div class="sub-section">
+          <span class="field-label">代入方程式</span>
+          <div class="sub-line step1" id="subLine1"></div>
+          <div class="sub-line step2" id="subLine2"></div>
+        </div>
+        <div class="sub-section">
+          <span class="field-label">得到一組解</span>
+          <div class="sub-line" id="currentSolution" style="font-size:22px;"></div>
+        </div>
+      </div>
+
+      <div class="card guide-card" id="guideText"></div>
+
+      <div class="explored-count" id="exploredCount"></div>
+
+      <button class="btn btn-primary" id="connectBtn" disabled>把這些點連起來</button>
+      <button class="btn" id="resetBtn">重新開始</button>
+    </div>
+
+    <!-- 右側坐標平面 -->
+    <div class="plane-panel">
+      <div class="card">
+        <div class="plane-wrap">
+          <svg id="plane" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
+      <div class="legend">
+        <div><span class="dot-current">●</span>目前的解</div>
+        <div><span class="dot-explored">●</span>曾經探索過的解</div>
+      </div>
+      <div class="point-info empty" id="pointInfo">點擊坐標平面上的小點，可以看到它代表的解</div>
+
+      <div class="card">
+        <span class="field-label">這條直線通過哪些象限？</span>
+        <p class="quadrant-intro">坐標平面依 x、y 的正負，被 x 軸和 y 軸分成四個區域，叫做「象限」：</p>
+        <div class="quadrant-grid">
+          <div class="quad-box" data-q="2"><div class="quad-title">第二象限</div><div class="quad-sign">x &lt; 0，y &gt; 0</div></div>
+          <div class="quad-box" data-q="1"><div class="quad-title">第一象限</div><div class="quad-sign">x &gt; 0，y &gt; 0</div></div>
+          <div class="quad-box" data-q="3"><div class="quad-title">第三象限</div><div class="quad-sign">x &lt; 0，y &lt; 0</div></div>
+          <div class="quad-box" data-q="4"><div class="quad-title">第四象限</div><div class="quad-sign">x &gt; 0，y &lt; 0</div></div>
+        </div>
+        <div class="quadrant-hint" id="quadrantHint">坐標平面上也用淺灰色標出了 I／II／III／IV 四個區域，可以對照著看。按下「把這些點連起來」後，這條線實際通過的象限會亮綠燈。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // 每個方程式描述：
+  //   linear / horizontal 類型：a x + s*b*y = c，拖動 x
+  //   vertical 類型：x = k（固定），拖動 y
+  const equations = [
+    { id:'e1', label:'2x + y = 5',   type:'linear', a:2, b:1, s:1,  c:5,  sliderMin:-2,  sliderMax:7  },
+    { id:'e2', label:'2x + 5y = 10', type:'linear', a:2, b:5, s:1,  c:10, sliderMin:-10, sliderMax:10 },
+    { id:'e3', label:'x − y = 0',    type:'linear', a:1, b:1, s:-1, c:0,  sliderMin:-10, sliderMax:10 },
+    { id:'e4', label:'3x + 2y = 6',  type:'linear', a:3, b:2, s:1,  c:6,  sliderMin:-4,  sliderMax:8  },
+    { id:'e5', label:'x + 2y = 4',   type:'linear', a:1, b:2, s:1,  c:4,  sliderMin:-10, sliderMax:10 },
+    { id:'h1', label:'y = 3',        type:'horizontal', a:0, b:1, s:1, c:3, sliderMin:-10, sliderMax:10 },
+    { id:'v1', label:'x = -2',       type:'vertical', k:-2, sliderMin:-10, sliderMax:10 }
+  ];
+  const X_MIN=-10, X_MAX=10, X_GRID_STEP=1, X_LABEL_STEP=2;
+  const Y_MIN=-10, Y_MAX=10, Y_GRID_STEP=1, Y_LABEL_STEP=2;
+
+  let currentEqIndex = 0;
+  let currentValue = 0;      // 目前拖動的值（x 或 y，依方程式種類而定）
+  let explored = {};         // key: 拖動的值 -> { x, y:{num,den} }
+  let lineShown = false;
+
+  const eqSelect = document.getElementById('eqSelect');
+  const grpLinear = document.getElementById('grpLinear');
+  const grpSpecial = document.getElementById('grpSpecial');
+  const driveLabel = document.getElementById('driveLabel');
+  const driveSlider = document.getElementById('driveSlider');
+  const xValueLabel = document.getElementById('xValueLabel');
+  const subLine1 = document.getElementById('subLine1');
+  const subLine2 = document.getElementById('subLine2');
+  const currentSolutionEl = document.getElementById('currentSolution');
+  const guideText = document.getElementById('guideText');
+  const exploredCountEl = document.getElementById('exploredCount');
+  const connectBtn = document.getElementById('connectBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const svg = document.getElementById('plane');
+  const pointInfo = document.getElementById('pointInfo');
+  const quadBoxes = document.querySelectorAll('.quad-box');
+  const quadrantHint = document.getElementById('quadrantHint');
+
+  equations.forEach((eq,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = eq.label;
+    (eq.type==='linear' ? grpLinear : grpSpecial).appendChild(opt);
+  });
+
+  function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a===0?1:a; }
+
+  function reduceFrac(num, den){
+    if(num===0) return {num:0, den:1};
+    if(den<0){ num=-num; den=-den; }
+    const g = gcd(num,den);
+    return { num: num/g, den: den/g };
+  }
+
+  function computeY(eq, x){
+    const num = eq.c - eq.a*x;
+    const den = eq.s*eq.b;
+    return reduceFrac(num, den);
+  }
+  function floatYgeneral(eq, x){
+    return (eq.c - eq.a*x) / (eq.s*eq.b);
+  }
+
+  function formatSigned(n){ return n<0 ? ('−'+Math.abs(n)) : (''+n); }
+  function formatParen(n){ return n<0 ? ('('+formatSigned(n)+')') : (''+n); }
+  function fracHTML(num, den){
+    if(den===1){ return '<span>'+formatSigned(num)+'</span>'; }
+    const sign = num<0 ? '−' : '';
+    const a = Math.abs(num);
+    return '<span>'+sign+'</span><span class="frac"><span class="fnum">'+a+'</span><span class="fden">'+den+'</span></span>';
+  }
+  function subEqString(eq, x){
+    const xTerm = eq.a===1 ? formatParen(x) : (eq.a+'×'+formatParen(x));
+    const yTerm = eq.b===1 ? 'y' : (eq.b+'y');
+    const sign = eq.s>0 ? '+' : '−';
+    return xTerm+' '+sign+' '+yTerm+' = '+eq.c;
+  }
+
+  function currentEq(){ return equations[currentEqIndex]; }
+  function driveVarName(eq){ return eq.type==='vertical' ? 'y' : 'x'; }
+
+  // 依方程式種類，取得目前拖動值所對應的完整解 {x, y:{num,den}}
+  function getPoint(eq, value){
+    if(eq.type==='vertical'){
+      return { x: eq.k, y: { num:value, den:1 } };
+    }
+    return { x: value, y: computeY(eq, value) };
+  }
+
+  // 判斷一條直線通過哪些象限（回傳 [1,2,3,4] 的子集合）
+  function getQuadrants(eq){
+    if(eq.type==='vertical'){
+      if(eq.k===0) return [];
+      return eq.k>0 ? [1,4] : [2,3];
+    }
+    if(eq.a===0){
+      const C = eq.c/(eq.s*eq.b);
+      if(C===0) return [];
+      return C>0 ? [1,2] : [3,4];
+    }
+    const x0 = eq.c/eq.a;
+    if(Math.abs(x0) < 1e-9){
+      const slope = -eq.a/(eq.s*eq.b);
+      return slope>0 ? [1,3] : [2,4];
+    }
+    const c1 = Math.min(0,x0), c2 = Math.max(0,x0);
+    const pts = [c1-1, (c1+c2)/2, c2+1];
+    const quads = new Set();
+    pts.forEach(px=>{
+      const py = (eq.c - eq.a*px)/(eq.s*eq.b);
+      if(px>0 && py>0) quads.add(1);
+      else if(px<0 && py>0) quads.add(2);
+      else if(px<0 && py<0) quads.add(3);
+      else if(px>0 && py<0) quads.add(4);
+    });
+    return Array.from(quads).sort();
+  }
+
+  function updateGuideText(){
+    const n = Object.keys(explored).length;
+    let text;
+    if(lineShown){
+      text = '原來，這些解在坐標平面上會形成一條直線，這條直線就是方程式 '+currentEq().label+' 的圖形。';
+    } else if(n===0){
+      text = '拖動左側的滑桿，找出第一組解。';
+    } else if(n===1){
+      text = '找到第一組解了，再拖到另一個值看看。';
+    } else if(n===2){
+      text = '已經有兩組解了，再找一組不同的解。';
+    } else if(n===3){
+      text = '現在有三組解了。觀察這些點的位置，你發現了什麼？';
+    } else {
+      text = '繼續探索，看看更多解會落在哪裡。';
+    }
+    guideText.textContent = text;
+  }
+
+  function updateExploredCount(){
+    const n = Object.keys(explored).length;
+    exploredCountEl.textContent = '已探索 '+n+' 組解';
+  }
+
+  function updateQuadrantPanel(){
+    if(!lineShown){
+      quadBoxes.forEach(b=>b.classList.remove('active'));
+      return;
+    }
+    const quads = getQuadrants(currentEq());
+    quadBoxes.forEach(b=>{
+      const q = parseInt(b.dataset.q,10);
+      b.classList.toggle('active', quads.includes(q));
+    });
+  }
+
+  function renderSubstitution(eq, value, pt){
+    if(eq.type==='vertical'){
+      subLine1.textContent = eq.label;
+      subLine2.innerHTML = 'y = '+formatSigned(value);
+    } else if(eq.type==='horizontal'){
+      subLine1.textContent = eq.label;
+      subLine2.innerHTML = 'y = '+formatSigned(eq.c);
+    } else {
+      subLine1.textContent = subEqString(eq, value);
+      subLine2.innerHTML = 'y = '+fracHTML(pt.y.num, pt.y.den);
+    }
+  }
+
+  function onDriveChange(value, addToExplored){
+    currentValue = value;
+    const eq = currentEq();
+    const pt = getPoint(eq, value);
+
+    xValueLabel.textContent = driveVarName(eq)+' = '+value;
+    renderSubstitution(eq, value, pt);
+    currentSolutionEl.innerHTML = '('+formatSigned(pt.x)+', '+fracHTML(pt.y.num,pt.y.den)+')';
+
+    if(addToExplored){
+      explored[value] = pt;
+    }
+
+    connectBtn.disabled = lineShown || Object.keys(explored).length<3;
+
+    updateGuideText();
+    updateExploredCount();
+    renderPlane();
+  }
+
+  function resetState(){
+    explored = {};
+    lineShown = false;
+    connectBtn.textContent = '把這些點連起來';
+    connectBtn.disabled = true;
+    pointInfo.textContent = '點擊坐標平面上的小點，可以看到它代表的解';
+    pointInfo.classList.add('empty');
+    updateQuadrantPanel();
+    onDriveChange(0, false);
+  }
+
+  function selectEquation(i){
+    currentEqIndex = i;
+    const eq = currentEq();
+    driveLabel.textContent = '拖動 '+driveVarName(eq);
+    driveSlider.min = eq.sliderMin;
+    driveSlider.max = eq.sliderMax;
+    driveSlider.step = 1;
+    driveSlider.value = 0;
+    resetState();
+  }
+
+  // ---------- SVG rendering ----------
+  const PAD = { l:40, r:16, t:16, b:34 };
+  const SVG_W = 500, SVG_H = 500;
+  const PLOT_W = SVG_W - PAD.l - PAD.r;
+  const PLOT_H = SVG_H - PAD.t - PAD.b;
+
+  function mapX(x){ return PAD.l + (x - X_MIN)/(X_MAX - X_MIN) * PLOT_W; }
+  function mapY(y){ return PAD.t + (Y_MAX - y)/(Y_MAX - Y_MIN) * PLOT_H; }
+
+  function svgEl(tag, attrs){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs){ el.setAttribute(k, attrs[k]); }
+    return el;
+  }
+
+  function getLineEndpoints(eq){
+    if(eq.type==='vertical'){
+      return [ {x:eq.k, y:Y_MIN}, {x:eq.k, y:Y_MAX} ];
+    }
+    const y1 = floatYgeneral(eq, X_MIN);
+    const y2 = floatYgeneral(eq, X_MAX);
+    return [ {x:X_MIN, y:y1}, {x:X_MAX, y:y2} ];
+  }
+
+  const QUADRANT_LABEL = {1:'I', 2:'II', 3:'III', 4:'IV'};
+
+  function drawQuadrantBackground(activeQuads){
+    // 四個象限的像素矩形範圍
+    const zeroX = mapX(0), zeroY = mapY(0);
+    const rects = {
+      1: { x:zeroX,        y:PAD.t,        w:(PAD.l+PLOT_W)-zeroX, h:zeroY-PAD.t,        lx:mapX(X_MAX-0.6), ly:mapY(Y_MAX-0.8) },
+      2: { x:PAD.l,        y:PAD.t,        w:zeroX-PAD.l,          h:zeroY-PAD.t,        lx:mapX(X_MIN+0.6), ly:mapY(Y_MAX-0.8) },
+      3: { x:PAD.l,        y:zeroY,        w:zeroX-PAD.l,          h:(PAD.t+PLOT_H)-zeroY, lx:mapX(X_MIN+0.6), ly:mapY(Y_MIN+1.4) },
+      4: { x:zeroX,        y:zeroY,        w:(PAD.l+PLOT_W)-zeroX, h:(PAD.t+PLOT_H)-zeroY, lx:mapX(X_MAX-0.6), ly:mapY(Y_MIN+1.4) }
+    };
+    Object.keys(rects).forEach(qStr=>{
+      const q = parseInt(qStr,10);
+      const r = rects[q];
+      const isActive = activeQuads && activeQuads.includes(q);
+      svg.appendChild(svgEl('rect',{
+        x:r.x, y:r.y, width:r.w, height:r.h,
+        fill: isActive ? '#DCF3E3' : '#FBFAF7',
+        'fill-opacity': isActive ? 0.9 : 1
+      }));
+      const lbl = svgEl('text',{
+        x:r.lx, y:r.ly, 'text-anchor':'middle', 'font-size':15,
+        'font-family':'Georgia, serif', fill: isActive ? '#2F9E58' : '#C9C6BC',
+        'font-weight': isActive ? '700' : '400'
+      });
+      lbl.textContent = QUADRANT_LABEL[q];
+      svg.appendChild(lbl);
+    });
+  }
+
+  function renderPlane(){
+    const eq = currentEq();
+    svg.innerHTML = '';
+
+    drawQuadrantBackground(lineShown ? getQuadrants(eq) : null);
+
+    for(let x=X_MIN; x<=X_MAX; x+=X_GRID_STEP){
+      const px = mapX(x);
+      svg.appendChild(svgEl('line',{x1:px,y1:PAD.t,x2:px,y2:PAD.t+PLOT_H,stroke:'var(--grid)','stroke-width':1}));
+      if(x!==0 && x%X_LABEL_STEP===0){
+        const lbl = svgEl('text',{x:px,y:PAD.t+PLOT_H+16,'text-anchor':'middle','font-size':9.5,fill:'#8F949B'});
+        lbl.textContent = x;
+        svg.appendChild(lbl);
+      }
+    }
+    for(let y=Y_MIN; y<=Y_MAX; y+=Y_GRID_STEP){
+      const py = mapY(y);
+      svg.appendChild(svgEl('line',{x1:PAD.l,y1:py,x2:PAD.l+PLOT_W,y2:py,stroke:'var(--grid)','stroke-width':1}));
+      if(y!==0 && y%Y_LABEL_STEP===0){
+        const lbl = svgEl('text',{x:PAD.l-8,y:py+3,'text-anchor':'end','font-size':9.5,fill:'#8F949B'});
+        lbl.textContent = y;
+        svg.appendChild(lbl);
+      }
+    }
+
+    const py0 = mapY(0);
+    svg.appendChild(svgEl('line',{x1:PAD.l,y1:py0,x2:PAD.l+PLOT_W,y2:py0,stroke:'#8F949B','stroke-width':1.4}));
+    const px0 = mapX(0);
+    svg.appendChild(svgEl('line',{x1:px0,y1:PAD.t,x2:px0,y2:PAD.t+PLOT_H,stroke:'#8F949B','stroke-width':1.4}));
+
+    const xLab = svgEl('text',{x:PAD.l+PLOT_W-4,y:py0-8,'text-anchor':'end','font-size':12,fill:'#8F949B','font-style':'italic'});
+    xLab.textContent='x';
+    svg.appendChild(xLab);
+    const yLab = svgEl('text',{x:px0+8,y:PAD.t+12,'text-anchor':'start','font-size':12,fill:'#8F949B','font-style':'italic'});
+    yLab.textContent='y';
+    svg.appendChild(yLab);
+
+    if(lineShown){
+      const [p1,p2] = getLineEndpoints(eq);
+      svg.appendChild(svgEl('line',{
+        x1:mapX(p1.x), y1:mapY(p1.y), x2:mapX(p2.x), y2:mapY(p2.y),
+        stroke:'#E08A3C','stroke-width':2.2
+      }));
+    }
+
+    Object.keys(explored).forEach(key=>{
+      const pt = explored[key];
+      const yFloat = pt.y.num/pt.y.den;
+      const px = mapX(pt.x), py = mapY(yFloat);
+      const isCurrent = Number(key)===currentValue;
+      const circle = svgEl('circle',{cx:px,cy:py,r: isCurrent?0:6, fill:'#E08A3C', style:'cursor:pointer'});
+      circle.addEventListener('click', ()=>{
+        pointInfo.classList.remove('empty');
+        pointInfo.innerHTML = '這個點代表解 ('+formatSigned(pt.x)+', '+fracHTML(pt.y.num,pt.y.den)+')';
+      });
+      svg.appendChild(circle);
+    });
+
+    {
+      const pt = getPoint(eq, currentValue);
+      const px = mapX(pt.x), py = mapY(pt.y.num/pt.y.den);
+      svg.appendChild(svgEl('circle',{cx:px,cy:py,r:8,fill:'#2F9E58',stroke:'#fff','stroke-width':2}));
+    }
+  }
+
+  eqSelect.addEventListener('change', (e)=>{
+    selectEquation(parseInt(e.target.value,10));
+  });
+  driveSlider.addEventListener('input', (e)=>{
+    onDriveChange(parseInt(e.target.value,10), true);
+  });
+  connectBtn.addEventListener('click', ()=>{
+    if(Object.keys(explored).length<3) return;
+    lineShown = true;
+    connectBtn.disabled = true;
+    connectBtn.textContent = '這些解形成了一條直線';
+    updateGuideText();
+    updateQuadrantPanel();
+    renderPlane();
+  });
+  resetBtn.addEventListener('click', resetState);
+
+  selectEquation(0);
+})();
+</script>
+</body>
+</html>
