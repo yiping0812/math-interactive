@@ -4,52 +4,56 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>二元一次方程式的解與圖形</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F6F5F1;
-    --card:#FFFFFF;
-    --border:#E3E1DA;
-    --ink:#2B2E33;
-    --muted:#8A8D93;
-    --current:#2F9E58;
-    --explored:#E08A3C;
-    --grid:#DAD6C9;
-    --grid-strong:#E3E1D8;
-    --axis:#8F949B;
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --border:#e2e8f0;
+    --ink:#1e293b;
+    --muted:#64748b;
+    --current:#16a34a;
+    --explored:#ea580c;
+    --grid:#e2e8f0;
+    --grid-strong:#e2e8f0;
+    --axis:#334155;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--bg);
     color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
-    line-height:1.6;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    font-size:19px;
+    line-height:1.7;
   }
   .app{ max-width:1080px; margin:0 auto; padding:32px 24px 56px; }
-  .app-header{ margin-bottom:24px; }
+  .app-header{ margin-bottom:24px; text-align:center; }
   .app-header h1{
-    font-family:"Noto Serif TC","Songti TC",Georgia,serif;
-    font-size:22px; font-weight:600; margin:0 0 6px; letter-spacing:0.02em;
+    font-size:33px; font-weight:900; margin:0 0 6px; color:#1e293b;
   }
-  .app-header p{ margin:0; color:var(--muted); font-size:14px; }
+  .app-header p{ margin:0; color:var(--muted); font-size:17px; font-weight:700; }
   .layout{ display:flex; gap:24px; align-items:flex-start; }
-  .control-panel{ width:340px; flex-shrink:0; display:flex; flex-direction:column; gap:14px; }
+  .control-panel{ width:360px; flex-shrink:0; display:flex; flex-direction:column; gap:14px; }
   .plane-panel{ flex:1; min-width:0; display:flex; flex-direction:column; gap:14px; }
-  .card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px 20px; }
-  .field-label{ font-size:13px; color:var(--muted); margin-bottom:10px; display:block; }
+  .card{
+    background:var(--card); border:1px solid #a7f3d0; border-radius:12px; padding:20px 24px;
+    box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+  }
+  .field-label{ font-size:17px; font-weight:700; color:#047857; margin-bottom:10px; display:block; }
   select{
-    width:100%; padding:9px 10px; font-size:15px; border:1px solid var(--border);
-    border-radius:6px; background:#fff; color:var(--ink); font-family:inherit;
+    width:100%; padding:10px 12px; font-size:17px; border:1px solid #cbd5e1;
+    border-radius:8px; background:#fff; color:var(--ink); font-family:inherit;
   }
   select:focus, button:focus-visible, input[type=range]:focus-visible{
-    outline:2px solid var(--current); outline-offset:2px;
+    outline:2px solid #2563eb; outline-offset:2px;
   }
-  .x-value{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:26px; font-weight:700; margin-bottom:14px; }
-  input[type=range]{ width:100%; height:20px; cursor:pointer; }
+  .x-value{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:29px; font-weight:700; margin-bottom:14px; }
+  input[type=range]{ width:100%; height:20px; cursor:pointer; accent-color:#2563eb; }
   .sub-section{ margin-bottom:18px; }
   .sub-section:last-child{ margin-bottom:0; }
   .sub-section .field-label{ margin-bottom:8px; }
-  .sub-line{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:19px; font-weight:600; }
+  .sub-line{ font-family:"Noto Serif TC","Songti TC",Georgia,serif; font-size:22px; font-weight:600; }
   .sub-line.step1{ margin-bottom:12px; }
   .frac{
     display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle;
@@ -58,36 +62,41 @@
   .frac .fnum{ padding:0 3px; }
   .frac .fden{ padding:0 3px; border-top:1.5px solid currentColor; }
 
-  .guide-card{ font-size:14.5px; color:var(--ink); }
-  .explored-count{ font-size:13px; color:var(--muted); padding:0 2px; }
-  .btn{
-    width:100%; padding:12px 14px; font-size:15px; border-radius:10px; border:1px solid var(--border);
-    cursor:pointer; font-family:inherit; background:#fff; color:var(--ink); transition:background 0.15s ease;
+  .guide-card{
+    font-size:17px; background:#eff6ff; border-color:#bfdbfe; color:#1e40af; box-shadow:none;
   }
-  .btn:hover:not(:disabled){ background:#F2F1EC; }
-  .btn-primary{ background:var(--current); color:#fff; border-color:var(--current); }
-  .btn-primary:hover:not(:disabled){ background:#278249; }
-  .btn-primary:disabled{ background:#EDEDE9; border-color:#E3E1DA; color:#B3B0A8; cursor:not-allowed; }
+  .explored-count{ font-size:15px; color:var(--muted); padding:0 2px; }
+  .btn{
+    width:100%; padding:12px 14px; font-size:17px; font-weight:700; border-radius:8px; border:1px solid #cbd5e1;
+    cursor:pointer; font-family:inherit; background:#fff; color:#334155; transition:background 0.15s ease;
+  }
+  .btn:hover:not(:disabled){ background:#eff6ff; border-color:#93c5fd; }
+  .btn-primary{ background:#2563eb; color:#fff; border-color:#2563eb; }
+  .btn-primary:hover:not(:disabled){ background:#1d4ed8; border-color:#1d4ed8; }
+  .btn-primary:disabled{ background:#e2e8f0; border-color:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
   .plane-wrap{ width:100%; aspect-ratio:1/1; }
   svg{ width:100%; height:100%; display:block; }
-  .legend{ display:flex; flex-direction:column; gap:5px; font-size:13px; color:var(--muted); padding-left:2px; }
-  .legend .dot-current{ color:var(--current); font-size:16px; margin-right:6px; }
-  .legend .dot-explored{ color:var(--explored); font-size:16px; margin-right:6px; }
-  .point-info{ min-height:20px; font-size:14px; color:var(--ink); text-align:center; }
+  .legend{ display:flex; flex-direction:column; gap:5px; font-size:15px; color:var(--muted); padding-left:2px; }
+  .legend .dot-current{ color:var(--current); font-size:18px; margin-right:6px; }
+  .legend .dot-explored{ color:var(--explored); font-size:18px; margin-right:6px; }
+  .point-info{ min-height:20px; font-size:17px; color:var(--ink); text-align:center; }
   .point-info.empty{ color:var(--muted); }
 
-  .quadrant-intro{ margin:0 0 12px; font-size:13px; color:var(--muted); }
+  .quadrant-intro{ margin:0 0 12px; font-size:15px; color:var(--muted); }
   .quadrant-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px; }
   .quad-box{
-    background:#F1F0EC; border:1px solid var(--border); border-radius:8px;
+    background:#f1f5f9; border:1px solid var(--border); border-radius:8px;
     padding:12px 6px; text-align:center; color:var(--muted);
     transition:background .2s ease, color .2s ease, border-color .2s ease;
   }
-  .quad-box .quad-title{ font-size:13.5px; font-weight:600; }
-  .quad-box .quad-sign{ font-size:12px; margin-top:3px; opacity:0.85; }
-  .quad-box.active{ background:#E1F5E7; border-color:var(--current); color:#1F7A43; }
-  .quadrant-hint{ margin-top:10px; font-size:12px; color:var(--muted); text-align:center; }
+  .quad-box .quad-title{ font-size:17px; font-weight:700; }
+  .quad-box .quad-sign{ font-size:15px; margin-top:3px; opacity:0.85; }
+  .quad-box.active{ background:#dcfce7; border-color:#22c55e; color:#166534; }
+  .quadrant-hint{ margin-top:10px; font-size:15px; color:var(--muted); text-align:center; }
 
+  @media (min-width: 768px){
+    .app-header h1{ font-size:39px; }
+  }
   @media (max-width: 800px){
     .layout{ flex-direction:column; }
     .control-panel{ width:100%; }
@@ -127,7 +136,7 @@
         </div>
         <div class="sub-section">
           <span class="field-label">得到一組解</span>
-          <div class="sub-line" id="currentSolution" style="font-size:22px;"></div>
+          <div class="sub-line" id="currentSolution" style="font-size:25px;"></div>
         </div>
       </div>
 
@@ -419,12 +428,12 @@
       const isActive = activeQuads && activeQuads.includes(q);
       svg.appendChild(svgEl('rect',{
         x:r.x, y:r.y, width:r.w, height:r.h,
-        fill: isActive ? '#DCF3E3' : '#FBFAF7',
+        fill: isActive ? '#dcfce7' : '#f8fafc',
         'fill-opacity': isActive ? 0.9 : 1
       }));
       const lbl = svgEl('text',{
-        x:r.lx, y:r.ly, 'text-anchor':'middle', 'font-size':15,
-        'font-family':'Georgia, serif', fill: isActive ? '#2F9E58' : '#C9C6BC',
+        x:r.lx, y:r.ly, 'text-anchor':'middle', 'font-size':17,
+        'font-family':'Noto Sans TC, sans-serif', fill: isActive ? '#16a34a' : '#cbd5e1',
         'font-weight': isActive ? '700' : '400'
       });
       lbl.textContent = QUADRANT_LABEL[q];
@@ -442,7 +451,7 @@
       const px = mapX(x);
       svg.appendChild(svgEl('line',{x1:px,y1:PAD.t,x2:px,y2:PAD.t+PLOT_H,stroke:'var(--grid)','stroke-width':1}));
       if(x!==0 && x%X_LABEL_STEP===0){
-        const lbl = svgEl('text',{x:px,y:PAD.t+PLOT_H+16,'text-anchor':'middle','font-size':9.5,fill:'#8F949B'});
+        const lbl = svgEl('text',{x:px,y:PAD.t+PLOT_H+16,'text-anchor':'middle','font-size':12,fill:'#64748b'});
         lbl.textContent = x;
         svg.appendChild(lbl);
       }
@@ -451,21 +460,21 @@
       const py = mapY(y);
       svg.appendChild(svgEl('line',{x1:PAD.l,y1:py,x2:PAD.l+PLOT_W,y2:py,stroke:'var(--grid)','stroke-width':1}));
       if(y!==0 && y%Y_LABEL_STEP===0){
-        const lbl = svgEl('text',{x:PAD.l-8,y:py+3,'text-anchor':'end','font-size':9.5,fill:'#8F949B'});
+        const lbl = svgEl('text',{x:PAD.l-8,y:py+3,'text-anchor':'end','font-size':12,fill:'#64748b'});
         lbl.textContent = y;
         svg.appendChild(lbl);
       }
     }
 
     const py0 = mapY(0);
-    svg.appendChild(svgEl('line',{x1:PAD.l,y1:py0,x2:PAD.l+PLOT_W,y2:py0,stroke:'#8F949B','stroke-width':1.4}));
+    svg.appendChild(svgEl('line',{x1:PAD.l,y1:py0,x2:PAD.l+PLOT_W,y2:py0,stroke:'#334155','stroke-width':1.8}));
     const px0 = mapX(0);
-    svg.appendChild(svgEl('line',{x1:px0,y1:PAD.t,x2:px0,y2:PAD.t+PLOT_H,stroke:'#8F949B','stroke-width':1.4}));
+    svg.appendChild(svgEl('line',{x1:px0,y1:PAD.t,x2:px0,y2:PAD.t+PLOT_H,stroke:'#334155','stroke-width':1.8}));
 
-    const xLab = svgEl('text',{x:PAD.l+PLOT_W-4,y:py0-8,'text-anchor':'end','font-size':12,fill:'#8F949B','font-style':'italic'});
+    const xLab = svgEl('text',{x:PAD.l+PLOT_W-4,y:py0-8,'text-anchor':'end','font-size':14,fill:'#334155','font-style':'italic'});
     xLab.textContent='x';
     svg.appendChild(xLab);
-    const yLab = svgEl('text',{x:px0+8,y:PAD.t+12,'text-anchor':'start','font-size':12,fill:'#8F949B','font-style':'italic'});
+    const yLab = svgEl('text',{x:px0+8,y:PAD.t+12,'text-anchor':'start','font-size':14,fill:'#334155','font-style':'italic'});
     yLab.textContent='y';
     svg.appendChild(yLab);
 
@@ -473,7 +482,7 @@
       const [p1,p2] = getLineEndpoints(eq);
       svg.appendChild(svgEl('line',{
         x1:mapX(p1.x), y1:mapY(p1.y), x2:mapX(p2.x), y2:mapY(p2.y),
-        stroke:'#E08A3C','stroke-width':2.2
+        stroke:'#ea580c','stroke-width':2.4
       }));
     }
 
@@ -482,7 +491,7 @@
       const yFloat = pt.y.num/pt.y.den;
       const px = mapX(pt.x), py = mapY(yFloat);
       const isCurrent = Number(key)===currentValue;
-      const circle = svgEl('circle',{cx:px,cy:py,r: isCurrent?0:6, fill:'#E08A3C', style:'cursor:pointer'});
+      const circle = svgEl('circle',{cx:px,cy:py,r: isCurrent?0:6, fill:'#ea580c', style:'cursor:pointer'});
       circle.addEventListener('click', ()=>{
         pointInfo.classList.remove('empty');
         pointInfo.innerHTML = '這個點代表解 ('+formatSigned(pt.x)+', '+fracHTML(pt.y.num,pt.y.den)+')';
@@ -493,7 +502,7 @@
     {
       const pt = getPoint(eq, currentValue);
       const px = mapX(pt.x), py = mapY(pt.y.num/pt.y.den);
-      svg.appendChild(svgEl('circle',{cx:px,cy:py,r:8,fill:'#2F9E58',stroke:'#fff','stroke-width':2}));
+      svg.appendChild(svgEl('circle',{cx:px,cy:py,r:8,fill:'#16a34a',stroke:'#fff','stroke-width':2}));
     }
   }
 
